@@ -100,7 +100,16 @@ pip install -r requirements-jdbc.txt
 
 ## Docker 运行（可选）
 
-目标：把运行环境打进镜像，Excel/配置通过 volume 挂载，后续用 `docker exec -it` 进入容器执行命令。
+目标：把运行环境打进镜像；Excel/配置通过 volume 挂载；后续用 `docker exec -it <name> bash` 进入容器执行命令。
+
+### 1) 构建镜像
+
+```bash
+cd dm8_excel_etl
+docker build -t dm8-etl:1.0.0 .
+```
+
+### 2) 启动容器（推荐用 docker-compose）
 
 在 `dm8_excel_etl/` 下：
 
@@ -109,20 +118,72 @@ docker-compose up -d --build
 docker exec -it dm8-etl bash
 ```
 
-容器内执行（示例）：
+说明：
+- `docker-compose.yml` 默认挂载：`./config`、`./data`、`./logs`、`./drivers`、`./lib`
+- 环境变量从宿主机 `dm8_excel_etl/.env` 读取（已在 `.gitignore` 忽略；模板见 `dm8_excel_etl/.env.example`）
+- 若 DM8 在宿主机本机且 JDBC URL 用 `127.0.0.1`：在 `dm8_excel_etl/docker-compose.yml` 里启用 `network_mode: host`（Docker 18.09 + docker-compose 1.29 兼容）
+- 若你把工程放在宿主机 `/root/...` 下并用 volume 挂载，容器内非 root 用户可能无权限进入；此时要么把工程移到可遍历目录（如 `/opt/...`），要么用 `docker run --user 0:0 ...`（见下文）
+
+### 3) 加载“样例文件”（可选）
+
+`config/app.samples.yaml` 依赖 `docs/erp/samples/` 下的 `sample_*` 文件。
+
+方式 A（推荐，挂载到容器 `/samples`，容器内一键拷入 inbox）：
+
+1) 修改 `dm8_excel_etl/docker-compose.yml`，取消注释这一行：
+   `../docs/erp/samples:/samples:ro`
+2) 重启容器：`docker-compose up -d`
+3) 容器内执行：
 
 ```bash
 ./scripts/load_samples.sh
-dm8-etl run-sql --config config/app.samples.yaml --dir sql/ddl
-dm8-etl load-ods --config config/app.samples.yaml
+```
+
+方式 B（不挂载 `/samples`，直接把样例拷到宿主机 inbox）：
+
+```bash
+cp -av ../docs/erp/samples/* data/inbox/
+```
+
+### 4) 加载“正式文件”（日常运行）
+
+把你的 Excel/CSV 放到宿主机 `dm8_excel_etl/data/inbox/`（已挂载到容器 `/app/data/inbox/`），文件名需与配置匹配：
+
+- 样例配置：`dm8_excel_etl/config/app.samples.yaml`
+- 正式配置：`dm8_excel_etl/config/app.yaml`（或你自己的 `config/app.local.yaml`）
+
+### 5) 容器内执行（示例）
+
+```bash
+dm8-etl --help
+
+# 只验证解析/校验，不连库
+./scripts/one_click_test.sh --config config/app.samples.yaml --dry-run
+
+# 全流程（需要 DB）
 ./scripts/one_click_test.sh --config config/app.samples.yaml
 ```
 
-说明：
-- Excel 放在宿主机 `dm8_excel_etl/data/inbox/`（compose 已挂载到容器 `/app/data/inbox/`）
-- 环境变量写在宿主机 `dm8_excel_etl/.env`（已在 `.gitignore` 忽略；compose 会自动加载）
-- 若 DM8 在宿主机本机且 JDBC URL 用 `127.0.0.1`：在 `dm8_excel_etl/docker-compose.yml` 里启用 `network_mode: host`（Docker 18.09 + docker-compose 1.29 兼容）
-  - 示例文件加载：推荐把宿主机样例目录挂载到容器 `/samples`（见 `docker-compose.yml` 注释），或设置 `DM8_SAMPLES_DIR`，再执行 `./scripts/load_samples.sh`
+输出说明（宿主机可见）：
+- 成功导入后的源文件会移动到 `dm8_excel_etl/data/archive/`
+- 失败行会输出到 `dm8_excel_etl/data/badrows/`
+- 日志在 `dm8_excel_etl/logs/`
+
+### 6) 不使用 docker-compose（纯 docker run）
+
+当你需要自定义挂载路径（例如样例目录/正式 inbox 单独路径）时可用这种方式：
+
+```bash
+docker rm -f dm8-etl 2>/dev/null || true
+docker run -d --name dm8-etl --user 0:0 -w /app \
+  -v /opt/prod/s10/dts-tools/dm8_excel_etl:/app \
+  -v /opt/prod/s10/dts-tools/docs/erp/samples:/samples:ro \
+  dm8-etl:1.0.0 tail -f /dev/null
+
+docker exec -it dm8-etl bash
+./scripts/load_samples.sh
+./scripts/one_click_test.sh --config config/app.samples.yaml --dry-run
+```
 
 ## 常见问题（ODBC）
 
@@ -257,6 +318,9 @@ python3.10 -V
 cd dm8_excel_etl_<version>_<date>
 PYTHON=/opt/python3.10/bin/python3.10 INSTALL_JDBC=1 ./install_offline.sh   # 需要 JDBC 兜底就设 1；只用 ODBC 可不设
 ```
+
+重要：
+- `install_offline.sh` 使用 `PYTHON=...` 指定解释器来创建 venv；必须与构建 `wheels/` 时使用的 Python 小版本一致（例如都用 Python 3.10），否则会出现 “No matching distribution found”（典型：pyodbc wheel 不匹配）。
 
 3. 配置连接信息（推荐用 `.env`，避免改动模板配置）：
    - 在离线包根目录创建 `.env`（参考 `.env.example`），设置：
