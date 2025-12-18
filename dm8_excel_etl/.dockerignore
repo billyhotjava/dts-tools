@@ -1,0 +1,16 @@
+.git
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# local runtime/state
+logs/
+data/
+
+# local secrets
+.env
+config/*.local.yaml
+

@@ -1,0 +1,28 @@
+version: "3.7"
+
+services:
+  dm8-etl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dm8-etl
+    working_dir: /app
+    command: ["bash", "-lc", "tail -f /dev/null"]
+    tty: true
+    stdin_open: true
+
+    # Excel/config/logs via volumes (edit on host, run in container).
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./drivers:/app/drivers
+      - ./lib:/app/lib
+
+    # Put secrets in `dm8_excel_etl/.env` (gitignored). Override as needed.
+    env_file:
+      - ./.env
+
+    # If DM8 is running on the host and you use `jdbc:dm://127.0.0.1:5236`,
+    # uncomment the next line so the container can reach the host's loopback.
+    # network_mode: host

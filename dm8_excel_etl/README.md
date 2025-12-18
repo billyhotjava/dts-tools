@@ -98,6 +98,30 @@ JDBC 依赖安装：
 pip install -r requirements-jdbc.txt
 ```
 
+## Docker 运行（可选）
+
+目标：把运行环境打进镜像，Excel/配置通过 volume 挂载，后续用 `docker exec -it` 进入容器执行命令。
+
+在 `dm8_excel_etl/` 下：
+
+```bash
+docker-compose up -d --build
+docker exec -it dm8-etl bash
+```
+
+容器内执行（示例）：
+
+```bash
+dm8-etl run-sql --config config/app.samples.yaml --dir sql/ddl
+dm8-etl load-ods --config config/app.samples.yaml
+./scripts/one_click_test.sh --config config/app.samples.yaml
+```
+
+说明：
+- Excel 放在宿主机 `dm8_excel_etl/data/inbox/`（compose 已挂载到容器 `/app/data/inbox/`）
+- 环境变量写在宿主机 `dm8_excel_etl/.env`（已在 `.gitignore` 忽略；compose 会自动加载）
+- 若 DM8 在宿主机本机且 JDBC URL 用 `127.0.0.1`：在 `dm8_excel_etl/docker-compose.yml` 里启用 `network_mode: host`（Docker 18.09 + docker-compose 1.29 兼容）
+
 ## 常见问题（ODBC）
 
 - 报错 `Encryption module failed to load (-70089)`：
@@ -183,9 +207,11 @@ cd dm8_excel_etl
 ### 2) 安装阶段（离线机：麒麟 V10 + 鲲鹏）
 
 1. 确认系统前置（离线机需要提前装好）：
-   - Python 3.9+（含 `venv`/`pip`）
+   - Python 3.9+（含 `venv`/`pip` 或 `ensurepip`）
    - ODBC 模式：unixODBC + DM8 ODBC Driver（并配置 DSN）
    - JDBC 模式：Java（如需 JDBC 兜底）
+
+> 提醒：麒麟系统上常见默认 `python` 仍是 2.7，请使用 `python3`；若没有 `pip`，可尝试 `python3 -m ensurepip --upgrade`（或通过系统包管理器安装 python3-pip）。
 
 2. 进入离线包目录并安装：
 
