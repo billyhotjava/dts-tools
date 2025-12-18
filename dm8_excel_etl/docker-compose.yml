@@ -18,6 +18,8 @@ services:
       - ./logs:/app/logs
       - ./drivers:/app/drivers
       - ./lib:/app/lib
+      # Optional: mount sample files from repo root into container:
+      # - ../docs/erp/samples:/samples:ro
 
     # Put secrets in `dm8_excel_etl/.env` (gitignored). Override as needed.
     env_file:

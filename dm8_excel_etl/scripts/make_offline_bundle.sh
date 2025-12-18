@@ -6,10 +6,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${ROOT}/dist_bundle"
 FORCE="0"
 SKIP_BUILD_WHEEL="0"
+PYTHON_BIN="${PYTHON:-python3}"
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/make_offline_bundle.sh [--output DIR] [--force] [--skip-build-wheel]
+Usage: scripts/make_offline_bundle.sh [--output DIR] [--force] [--skip-build-wheel] [--python PYTHON]
 
 Creates an offline delivery bundle containing:
   - source code, config, sql, scripts
@@ -19,6 +20,7 @@ Creates an offline delivery bundle containing:
 Before running:
   - prepare wheels/ (incl. dependencies + project wheel).
   - for Kunpeng aarch64, build pyodbc wheel on aarch64 if needed.
+  - recommend using the same Python major/minor as the target machine.
 USAGE
 }
 
@@ -36,6 +38,10 @@ while [[ $# -gt 0 ]]; do
       SKIP_BUILD_WHEEL="1"
       shift
       ;;
+    --python)
+      PYTHON_BIN="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -47,6 +53,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
+  echo "Python not found: ${PYTHON_BIN}" >&2
+  exit 2
+fi
 
 VERSION="$(python3 - <<'PY'
 import re
@@ -74,7 +85,10 @@ cd "${ROOT}"
 
 if [[ "${SKIP_BUILD_WHEEL}" == "0" ]]; then
   mkdir -p wheels
-  python3 -m pip wheel . -w wheels --no-deps --no-build-isolation >/dev/null
+  # Ensure pip exists and is new enough to build from pyproject.toml
+  "${PYTHON_BIN}" -m ensurepip --upgrade >/dev/null 2>&1 || true
+  "${PYTHON_BIN}" -m pip install -U pip setuptools wheel >/dev/null 2>&1 || true
+  "${PYTHON_BIN}" -m pip wheel . -w wheels --no-deps --no-build-isolation >/dev/null
 fi
 
 mkdir -p "${BUNDLE_DIR}"

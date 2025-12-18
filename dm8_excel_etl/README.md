@@ -112,6 +112,7 @@ docker exec -it dm8-etl bash
 容器内执行（示例）：
 
 ```bash
+./scripts/load_samples.sh
 dm8-etl run-sql --config config/app.samples.yaml --dir sql/ddl
 dm8-etl load-ods --config config/app.samples.yaml
 ./scripts/one_click_test.sh --config config/app.samples.yaml
@@ -121,6 +122,7 @@ dm8-etl load-ods --config config/app.samples.yaml
 - Excel 放在宿主机 `dm8_excel_etl/data/inbox/`（compose 已挂载到容器 `/app/data/inbox/`）
 - 环境变量写在宿主机 `dm8_excel_etl/.env`（已在 `.gitignore` 忽略；compose 会自动加载）
 - 若 DM8 在宿主机本机且 JDBC URL 用 `127.0.0.1`：在 `dm8_excel_etl/docker-compose.yml` 里启用 `network_mode: host`（Docker 18.09 + docker-compose 1.29 兼容）
+  - 示例文件加载：推荐把宿主机样例目录挂载到容器 `/samples`（见 `docker-compose.yml` 注释），或设置 `DM8_SAMPLES_DIR`，再执行 `./scripts/load_samples.sh`
 
 ## 常见问题（ODBC）
 
@@ -199,7 +201,8 @@ python3 -m pip download -r requirements-jdbc.txt -d wheels   # 如需 JDBC 兜�
 
 ```bash
 cd dm8_excel_etl
-./scripts/make_offline_bundle.sh --force
+# 推荐显式指定构建 Python（与目标机一致的 Python 版本）
+PYTHON=/opt/python3.10/bin/python3.10 ./scripts/make_offline_bundle.sh --force
 ```
 
 3. 通过 U 盘/刻录介质把 `dist_bundle/dm8_excel_etl_<version>_<date>/` 整目录拷贝到离线机。
