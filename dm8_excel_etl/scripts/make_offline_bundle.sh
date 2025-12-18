@@ -95,9 +95,10 @@ mkdir -p "${BUNDLE_DIR}"
 
 cp -a README.md pyproject.toml requirements.txt requirements-jdbc.txt "${BUNDLE_DIR}/" 2>/dev/null || true
 cp -a .env.example "${BUNDLE_DIR}/" 2>/dev/null || true
-cp -a config sql scripts src "${BUNDLE_DIR}/"
+cp -a config sql scripts src drivers "${BUNDLE_DIR}/"
+cp -a lib "${BUNDLE_DIR}/" 2>/dev/null || true
 
-mkdir -p "${BUNDLE_DIR}/data/inbox" "${BUNDLE_DIR}/data/archive" "${BUNDLE_DIR}/data/badrows" "${BUNDLE_DIR}/logs" "${BUNDLE_DIR}/drivers"
+mkdir -p "${BUNDLE_DIR}/data/inbox" "${BUNDLE_DIR}/data/archive" "${BUNDLE_DIR}/data/badrows" "${BUNDLE_DIR}/logs"
 
 if [[ -d wheels ]]; then
   cp -a wheels "${BUNDLE_DIR}/"

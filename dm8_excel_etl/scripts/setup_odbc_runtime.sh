@@ -48,14 +48,20 @@ link_if_missing() {
 link_if_missing "libssl.so" \
   "/lib/x86_64-linux-gnu/libssl.so.3" \
   "/usr/lib/x86_64-linux-gnu/libssl.so.3" \
+  "/lib64/libssl.so.3" \
+  "/usr/lib64/libssl.so.3" \
   "/lib/aarch64-linux-gnu/libssl.so.3" \
   "/usr/lib/aarch64-linux-gnu/libssl.so.3" \
   "/lib/x86_64-linux-gnu/libssl.so.1.1" \
   "/usr/lib/x86_64-linux-gnu/libssl.so.1.1" \
+  "/lib64/libssl.so.1.1" \
+  "/usr/lib64/libssl.so.1.1" \
   "/lib/aarch64-linux-gnu/libssl.so.1.1" \
   "/usr/lib/aarch64-linux-gnu/libssl.so.1.1" \
   "/lib/x86_64-linux-gnu/libssl.so.1.0.0" \
   "/usr/lib/x86_64-linux-gnu/libssl.so.1.0.0" \
+  "/lib64/libssl.so.1.0.0" \
+  "/usr/lib64/libssl.so.1.0.0" \
   "/lib/aarch64-linux-gnu/libssl.so.1.0.0" \
   "/usr/lib/aarch64-linux-gnu/libssl.so.1.0.0" \
   || true
@@ -63,17 +69,22 @@ link_if_missing "libssl.so" \
 link_if_missing "libcrypto.so" \
   "/lib/x86_64-linux-gnu/libcrypto.so.3" \
   "/usr/lib/x86_64-linux-gnu/libcrypto.so.3" \
+  "/lib64/libcrypto.so.3" \
+  "/usr/lib64/libcrypto.so.3" \
   "/lib/aarch64-linux-gnu/libcrypto.so.3" \
   "/usr/lib/aarch64-linux-gnu/libcrypto.so.3" \
   "/lib/x86_64-linux-gnu/libcrypto.so.1.1" \
   "/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1" \
+  "/lib64/libcrypto.so.1.1" \
+  "/usr/lib64/libcrypto.so.1.1" \
   "/lib/aarch64-linux-gnu/libcrypto.so.1.1" \
   "/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1" \
   "/lib/x86_64-linux-gnu/libcrypto.so.1.0.0" \
   "/usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0" \
+  "/lib64/libcrypto.so.1.0.0" \
+  "/usr/lib64/libcrypto.so.1.0.0" \
   "/lib/aarch64-linux-gnu/libcrypto.so.1.0.0" \
   "/usr/lib/aarch64-linux-gnu/libcrypto.so.1.0.0" \
   || true
 
 exit 0
-

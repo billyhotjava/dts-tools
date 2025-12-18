@@ -327,6 +327,7 @@ PYTHON=/opt/python3.10/bin/python3.10 INSTALL_JDBC=1 ./install_offline.sh   # �
      - `DM8_DSN`（DSN 名）
      - `DM8_UID`/`DM8_PWD`
      - `DM8_MODE`：`odbc` / `jdbc` / `auto`
+   - 若报 `Data source name not found (IM002)`：请在目标机执行 `odbcinst -j` 查看系统实际读取的 `odbc.ini` 路径，并确认该文件中存在对应的 `[DSN]`（例如 `[DM8]`）；也可以通过 `.env` 显式覆盖：`DM8_DSN=<你的DSN名>`。
 
 4. 如果 ODBC 驱动依赖的 `.so` 找不到（常见于驱动目录不在系统库搜索路径），在运行前设置：
 
