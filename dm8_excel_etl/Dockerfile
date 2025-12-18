@@ -26,7 +26,9 @@ COPY sql ./sql
 COPY scripts ./scripts
 COPY config ./config
 COPY drivers ./drivers
-COPY lib ./lib
+# `lib/` is optional runtime folder (often created/filled locally for ODBC deps).
+# Keep it as an empty directory in the image; use docker-compose volume mount to provide host `./lib` if needed.
+RUN mkdir -p /app/lib
 
 # Create a non-root user matching common host UID/GID (1000:1000).
 RUN groupadd -g 1000 etl \

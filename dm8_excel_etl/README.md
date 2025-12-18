@@ -213,6 +213,45 @@ cd dm8_excel_etl
 
 > 提醒：麒麟系统上常见默认 `python` 仍是 2.7，请使用 `python3`；若没有 `pip`，可尝试 `python3 -m ensurepip --upgrade`（或通过系统包管理器安装 python3-pip）。
 
+### 2.1 Python 3.9+（源码编译安装到 /opt，可用于离线机复制部署）
+
+如果系统仓库没有 Python 3.9+，建议在“可联网构建机”源码编译到 `/opt`，再将 `/opt/python3.10`（以及 OpenSSL）整体拷贝到离线机使用。
+
+常见报错：`Failed to build these modules: _ssl` / `Could not build the ssl module`  
+原因：系统只有 LibreSSL 或 OpenSSL 版本/头文件不兼容。解决思路：使用 OpenSSL 1.1.1（或更高）并在编译 Python 时显式指定。
+
+示例（构建 OpenSSL 1.1.1 到 `/opt/openssl1.1`，再编译 Python 到 `/opt/python3.10`）：
+
+```bash
+# 1) 编译 OpenSSL（示例版本；按需替换）
+tar xf openssl-1.1.1w.tar.gz
+cd openssl-1.1.1w
+./config --prefix=/opt/openssl1.1 --openssldir=/opt/openssl1.1 shared zlib
+make -j"$(nproc)"
+make install_sw
+cd ..
+
+# 2) 编译 Python（示例版本；按需替换）
+tar xf Python-3.10.14.tgz
+cd Python-3.10.14
+export CPPFLAGS="-I/opt/openssl1.1/include"
+export LDFLAGS="-L/opt/openssl1.1/lib -Wl,-rpath,/opt/openssl1.1/lib"
+export PKG_CONFIG_PATH="/opt/openssl1.1/lib/pkgconfig"
+./configure --prefix=/opt/python3.10 --with-openssl=/opt/openssl1.1 --with-ensurepip=install
+make -j"$(nproc)"
+make altinstall
+
+/opt/python3.10/bin/python3.10 -c "import ssl; print(ssl.OPENSSL_VERSION)"
+```
+
+离线机使用时（确保能找到 OpenSSL 动态库）：
+
+```bash
+export PATH=/opt/python3.10/bin:$PATH
+export LD_LIBRARY_PATH=/opt/openssl1.1/lib:$LD_LIBRARY_PATH
+python3.10 -V
+```
+
 2. 进入离线包目录并安装：
 
 ```bash
