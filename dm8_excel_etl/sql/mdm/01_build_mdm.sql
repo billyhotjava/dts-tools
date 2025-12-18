@@ -1,6 +1,7 @@
 -- ODS -> MDM 构建脚本（来源：docs/erp/erp_mdm.sql）
 
--- 1) 项目维表：汇总多个 ODS 来源，优先用 ods_proj_base_info 的父子/名称信息
+-- 1) 项目维表：汇总多个 ODS 来源
+-- 说明：当前 ERP 导出为“中间表”，项目编码/名称在多张 ODS 表中已包含，因此不依赖 ods_proj_base_info。
 MERGE INTO mdm_project t
 USING (
   SELECT
@@ -14,27 +15,20 @@ USING (
       proj_name,
       parent_proj_code,
       parent_proj_name
-    FROM ods_proj_base_info
-    UNION ALL
-    SELECT
-      proj_code,
-      proj_name,
-      parent_proj_code,
-      parent_proj_name
     FROM ods_proj_budget_exec_dtl
     UNION ALL
     SELECT proj_code, proj_name, NULL AS parent_proj_code, NULL AS parent_proj_name
     FROM ods_po_exec
     UNION ALL
     SELECT
-      COALESCE(proj_code, proj) AS proj_code,
+      proj_code AS proj_code,
       COALESCE(proj_name, proj) AS proj_name,
       NULL AS parent_proj_code,
       NULL AS parent_proj_name
     FROM ods_stock_io_flow
     UNION ALL
     SELECT
-      COALESCE(proj_code, proj) AS proj_code,
+      proj_code AS proj_code,
       COALESCE(proj_name, proj) AS proj_name,
       NULL AS parent_proj_code,
       NULL AS parent_proj_name
@@ -58,7 +52,8 @@ WHEN NOT MATCHED THEN
     s.proj_code, s.proj_name, s.parent_proj_code, s.parent_proj_name, NULL, NULL, 1
   );
 
--- 2) 物料维表：优先 ods_item_master，其它 ODS 作为补充（规格/型号/单位）
+-- 2) 物料维表：汇总多个 ODS 来源
+-- 说明：当前 ERP 导出为“中间表”，物料编码/名称/规格型号等在多张 ODS 表中已包含，因此不依赖 ods_item_master。
 MERGE INTO mdm_item t
 USING (
   SELECT
@@ -77,9 +72,6 @@ USING (
       END
     ) AS enable_flag
   FROM (
-    SELECT item_code, item_name, item_class, spec, model, base_uom, enable_status
-    FROM ods_item_master
-    UNION ALL
     SELECT item_code, item_name, NULL AS item_class, spec, model, uom AS base_uom, NULL AS enable_status
     FROM ods_po_exec
     UNION ALL

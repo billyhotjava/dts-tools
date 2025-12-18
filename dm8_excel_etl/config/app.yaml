@@ -37,6 +37,10 @@ excel:
 #   encoding: "utf-8-sig"   # 常见：utf-8-sig / gbk
 #   delimiter: ","          # 也可能是 \t / |
 #   quotechar: "\""
+#
+# 说明（与当前 ERP 导出匹配）：
+# - 项目基本信息、物料主数据通常已被“中间表”平铺到其它明细里，因此默认不再配置/导入 ods_proj_base_info、ods_item_master
+# - 如你的导出仍包含这两类主数据，可自行在 tables 中补回映射
 
 tables:
   ods_proj_budget_exec_dtl:
@@ -55,16 +59,6 @@ tables:
       - {excel: "调整金额（元）",   db: "adjust_amt",           type: "decimal"}
       - {excel: "执行金额（元）",   db: "exec_amt",             type: "decimal"}
       - {excel: "历史执行金额（元）", db: "hist_exec_amt",      type: "decimal"}
-
-  ods_proj_base_info:
-    file: "项目基本信息.xlsx"
-    sheet: "项目基本信息"
-    columns:
-      - {excel: "父项目编码", db: "parent_proj_code", type: "str"}
-      - {excel: "父项目名称", db: "parent_proj_name", type: "str"}
-      - {excel: "项目编码",   db: "proj_code",        type: "str", required: true}
-      - {excel: "项目名称",   db: "proj_name",        type: "str"}
-      - {excel: "创建人",     db: "creator",          type: "str"}
 
   ods_po_exec:
     file: "采购订单执行.xlsx"
@@ -149,15 +143,3 @@ tables:
       - {excel: "预留主数量", db: "reserved_qty", type: "decimal"}
       - {excel: "冻结主数量", db: "frozen_qty", type: "decimal"}
       - {excel: "供应商物权结存主数量", db: "supplier_owner_onhand_qty", type: "decimal"}
-
-  ods_item_master:
-    file: "物料主数据.xlsx"
-    sheet: "物料主数据"
-    columns:
-      - {excel: "物料编码", db: "item_code", type: "str", required: true}
-      - {excel: "物料名称", db: "item_name", type: "str"}
-      - {excel: "物料分类", db: "item_class", type: "str"}
-      - {excel: "规格",     db: "spec", type: "str"}
-      - {excel: "型号",     db: "model", type: "str"}
-      - {excel: "主计量单位", db: "base_uom", type: "str"}
-      - {excel: "启用状态", db: "enable_status", type: "str"}

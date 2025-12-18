@@ -60,29 +60,6 @@ COMMENT ON COLUMN ods_proj_budget_exec_dtl.etl_time             IS 'ETL时间';
 
 CREATE INDEX idx_ods_bgt_proj ON ods_proj_budget_exec_dtl(proj_code);
 
--- ODS-项目基本信息
-CREATE TABLE ods_proj_base_info (
-  id               BIGINT IDENTITY(1,1) NOT NULL,
-  parent_proj_code VARCHAR2(50),
-  parent_proj_name VARCHAR2(200),
-  proj_code        VARCHAR2(50) NOT NULL,
-  proj_name        VARCHAR2(200),
-  creator          VARCHAR2(100),
-  etl_time         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT pk_ods_proj_base_info PRIMARY KEY (id)
-);
-
-COMMENT ON TABLE ods_proj_base_info IS 'ODS-项目基本信息';
-COMMENT ON COLUMN ods_proj_base_info.parent_proj_code IS '父项目编码：1、大部分项目都有多个层级，也有单个层级的项目（无父级项目和子项目）；2、层级不固定，一般分为项目（顶层）-分系统（第二层）-单机（第三层）-物料（第四层）。';
-COMMENT ON COLUMN ods_proj_base_info.parent_proj_name IS '父项目名称';
-COMMENT ON COLUMN ods_proj_base_info.proj_code        IS '项目编码';
-COMMENT ON COLUMN ods_proj_base_info.proj_name        IS '项目名称';
-COMMENT ON COLUMN ods_proj_base_info.creator          IS '创建人';
-COMMENT ON COLUMN ods_proj_base_info.etl_time         IS 'ETL时间';
-
-CREATE UNIQUE INDEX uk_ods_proj_code ON ods_proj_base_info(proj_code);
-CREATE INDEX idx_ods_proj_parent ON ods_proj_base_info(parent_proj_code);
-
 -- ODS-采购订单执行
 CREATE TABLE ods_po_exec (
   id            BIGINT IDENTITY(1,1) NOT NULL,
@@ -271,32 +248,6 @@ COMMENT ON COLUMN ods_stock_onhand.etl_time   IS 'ETL时间';
 CREATE INDEX idx_ods_onhand_item ON ods_stock_onhand(item_code);
 CREATE INDEX idx_ods_onhand_proj ON ods_stock_onhand(proj_code);
 CREATE INDEX idx_ods_onhand_wh   ON ods_stock_onhand(wh_name);
-
--- ODS-物料主数据
-CREATE TABLE ods_item_master (
-  id            BIGINT IDENTITY(1,1) NOT NULL,
-  item_code     VARCHAR2(80) NOT NULL,
-  item_name     VARCHAR2(300),
-  item_class    VARCHAR2(50),
-  spec          VARCHAR2(200),
-  model         VARCHAR2(200),
-  base_uom      VARCHAR2(50),
-  enable_status VARCHAR2(50),
-  etl_time      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT pk_ods_item_master PRIMARY KEY (id)
-);
-
-COMMENT ON TABLE ods_item_master IS 'ODS-物料主数据';
-COMMENT ON COLUMN ods_item_master.item_code      IS '物料编码';
-COMMENT ON COLUMN ods_item_master.item_name      IS '物料名称';
-COMMENT ON COLUMN ods_item_master.item_class     IS '物料分类：物料分为大类、小类、细类三类，物料分类码说明：01001001，前两位数字01代表材料，中间三位001代表金属材料，后三位001代表黑色金属材料。';
-COMMENT ON COLUMN ods_item_master.spec           IS '规格';
-COMMENT ON COLUMN ods_item_master.model          IS '型号';
-COMMENT ON COLUMN ods_item_master.base_uom       IS '主计量单位';
-COMMENT ON COLUMN ods_item_master.enable_status  IS '启用状态：已启用、未启用';
-COMMENT ON COLUMN ods_item_master.etl_time       IS 'ETL时间';
-
-CREATE UNIQUE INDEX uk_ods_item_code ON ods_item_master(item_code);
 
 -- MDM 表（来源：docs/erp/erp_mdm.sql）
 
@@ -639,23 +590,6 @@ COMMENT ON TABLE ads_item_price_month IS 'ADS-物料无税单价月追踪（大�
 -- 生成方式：INSERT INTO ... SELECT ... CONNECT BY LEVEL <= 100
 -- ============================================================================
 
--- ODS-项目基本信息（100 项目）
-INSERT INTO ods_proj_base_info (
-  parent_proj_code,
-  parent_proj_name,
-  proj_code,
-  proj_name,
-  creator
-)
-SELECT
-  CASE WHEN LEVEL <= 10 THEN NULL ELSE 'P' || LPAD(TO_CHAR(MOD(LEVEL - 1, 10) + 1), 4, '0') END AS parent_proj_code,
-  CASE WHEN LEVEL <= 10 THEN NULL ELSE '父项目' || TO_CHAR(MOD(LEVEL - 1, 10) + 1) END AS parent_proj_name,
-  'P' || LPAD(TO_CHAR(LEVEL), 4, '0') AS proj_code,
-  '项目' || TO_CHAR(LEVEL) AS proj_name,
-  'tester' AS creator
-FROM dual
-CONNECT BY LEVEL <= 100;
-
 -- ODS-项目预算执行明细（100 行，引用前 20 个项目）
 INSERT INTO ods_proj_budget_exec_dtl (
   proj_budget_cat_code,
@@ -684,27 +618,6 @@ SELECT
   ROUND(CASE WHEN MOD(LEVEL, 10) = 0 THEN 5000 ELSE 0 END, 2) AS adjust_amt,
   ROUND(50000 + LEVEL * 500.12, 2) AS exec_amt,
   ROUND(CASE WHEN MOD(LEVEL, 3) = 0 THEN 8000 ELSE 0 END, 2) AS hist_exec_amt
-FROM dual
-CONNECT BY LEVEL <= 100;
-
--- ODS-物料主数据（100 物料）
-INSERT INTO ods_item_master (
-  item_code,
-  item_name,
-  item_class,
-  spec,
-  model,
-  base_uom,
-  enable_status
-)
-SELECT
-  'I' || LPAD(TO_CHAR(LEVEL), 5, '0') AS item_code,
-  '物料' || TO_CHAR(LEVEL) AS item_name,
-  '01' || LPAD(TO_CHAR(MOD(LEVEL - 1, 9) + 1), 2, '0') AS item_class,
-  '规格' || TO_CHAR(MOD(LEVEL - 1, 10) + 1) AS spec,
-  '型号' || TO_CHAR(MOD(LEVEL - 1, 12) + 1) AS model,
-  'EA' AS base_uom,
-  CASE WHEN MOD(LEVEL, 15) = 0 THEN '未启用' ELSE '已启用' END AS enable_status
 FROM dual
 CONNECT BY LEVEL <= 100;
 
