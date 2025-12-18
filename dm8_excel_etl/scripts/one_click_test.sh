@@ -62,6 +62,25 @@ if [[ -x "${ROOT}/.venv/bin/python" ]]; then
   PY="${ROOT}/.venv/bin/python"
 fi
 
+# Best-effort: fix common DM8 ODBC runtime deps (local libssl.so/libcrypto.so links).
+# Only touches repo-local `./lib/` and is safe to run multiple times.
+if [[ "${DM8_MODE:-auto}" != "jdbc" ]]; then
+  if [[ -x "${ROOT}/scripts/setup_odbc_runtime.sh" ]]; then
+    "${ROOT}/scripts/setup_odbc_runtime.sh" || true
+  fi
+
+  # Best-effort: ensure DM8 ODBC driver directory is in LD_LIBRARY_PATH so its dependent .so can be found.
+  if command -v odbcinst >/dev/null 2>&1; then
+    DRIVER_PATH="$(odbcinst -q -d -n "DM8 ODBC DRIVER" 2>/dev/null | awk -F= '/^Driver=/ {print $2}' | tail -n 1 || true)"
+    if [[ -n "${DRIVER_PATH}" ]]; then
+      DRIVER_DIR="$(dirname "${DRIVER_PATH}")"
+      if [[ -d "${DRIVER_DIR}" ]]; then
+        export LD_LIBRARY_PATH="${DRIVER_DIR}:${ROOT}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+      fi
+    fi
+  fi
+fi
+
 if command -v dm8-etl >/dev/null 2>&1; then
   ETL=(dm8-etl)
 else

@@ -32,6 +32,51 @@ class Db:
         self.conn.close()
 
 
+def _as_jdbc_param(value: Any) -> Any:
+    import datetime as dt
+
+    if isinstance(value, dt.datetime):
+        s = value.strftime("%Y-%m-%d %H:%M:%S")
+        if value.microsecond:
+            s = f"{s}.{value.microsecond:06d}"
+        try:
+            import jpype  # type: ignore[import-not-found]
+
+            if not jpype.isJVMStarted():
+                return s
+            Timestamp = jpype.JClass("java.sql.Timestamp")
+            return Timestamp.valueOf(s)
+        except Exception:
+            return s
+
+    if isinstance(value, dt.date):
+        s = value.isoformat()
+        try:
+            import jpype  # type: ignore[import-not-found]
+
+            if not jpype.isJVMStarted():
+                return s
+            Date = jpype.JClass("java.sql.Date")
+            return Date.valueOf(s)
+        except Exception:
+            return s
+
+    return value
+
+
+def adapt_params(db: Db, params: Iterable[Any]) -> list[Any]:
+    values = list(params)
+    if db.mode != "jdbc":
+        return values
+    return [_as_jdbc_param(v) for v in values]
+
+
+def adapt_param_rows(db: Db, rows: list[tuple[Any, ...]]) -> list[tuple[Any, ...]]:
+    if db.mode != "jdbc":
+        return rows
+    return [tuple(_as_jdbc_param(v) for v in row) for row in rows]
+
+
 def connect(odbc: OdbcConfig) -> Db:
     if odbc.mode == "auto":
         try:
@@ -47,6 +92,9 @@ def connect(odbc: OdbcConfig) -> Db:
             raise DbError(f"Auto connect failed (no JDBC config to fallback). ODBC error: {odbc_exc}") from odbc_exc
 
     if odbc.mode == "jdbc":
+        if not odbc.uid or not odbc.pwd:
+            raise DbError("JDBC mode requires non-empty username/password (set `db.uid`/`db.pwd` or env DM8_UID/DM8_PWD)")
+
         try:
             import jaydebeapi  # type: ignore[import-not-found]
         except Exception as e:
@@ -60,8 +108,8 @@ def connect(odbc: OdbcConfig) -> Db:
         if missing:
             raise DbError(f"JDBC jar not found: {missing}")
 
-        user = odbc.uid or ""
-        pwd = odbc.pwd or ""
+        user = odbc.uid
+        pwd = odbc.pwd
         try:
             conn = jaydebeapi.connect(odbc.jdbc_driver, odbc.jdbc_url, [user, pwd], jars)
             # best-effort set autocommit on underlying java connection
@@ -98,7 +146,7 @@ def connect(odbc: OdbcConfig) -> Db:
 def execute(db: Db, sql: str, params: Iterable[Any] | None = None) -> None:
     try:
         cur = db.cursor()
-        cur.execute(sql, params or [])
+        cur.execute(sql, adapt_params(db, params or []))
         cur.close()
         db.commit()
     except Exception as e:

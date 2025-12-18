@@ -227,6 +227,9 @@ def load_config(path: str | Path) -> AppConfig:
         if mode not in {"odbc", "jdbc", "auto"}:
             raise ConfigError(f"`{ctx}.mode` must be one of: odbc, jdbc, auto")
 
+        uid = _none_if_blank(odbc_raw.get("uid"))
+        pwd = _none_if_blank(odbc_raw.get("pwd"))
+
         jdbc_jars: list[str] | None = None
         if "jdbc_jars" in odbc_raw and odbc_raw["jdbc_jars"] is not None:
             jars_raw = odbc_raw["jdbc_jars"]
@@ -241,8 +244,8 @@ def load_config(path: str | Path) -> AppConfig:
         return OdbcConfig(
             mode=mode,  # type: ignore[assignment]
             dsn=_none_if_blank(odbc_raw.get("dsn")),
-            uid=_none_if_blank(odbc_raw.get("uid")),
-            pwd=_none_if_blank(odbc_raw.get("pwd")),
+            uid=uid,
+            pwd=pwd,
             autocommit=_as_bool(odbc_raw.get("autocommit"), default=False),
             batch_size=batch_size,
             connection_string=_none_if_blank(odbc_raw.get("connection_string")),

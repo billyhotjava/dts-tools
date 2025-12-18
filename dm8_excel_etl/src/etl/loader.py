@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 from .config import AppConfig, JobConfig
-from .db import Db, DbError, connect, execute
+from .db import Db, DbError, adapt_param_rows, connect, execute
 from .excel import ExcelError, ParsedRow, iter_rows
 from .meta import try_insert_batch_log
 
@@ -82,6 +82,8 @@ def load_job_file(
 
     if not dry_run and db is None:
         raise ValueError("db is required unless dry_run=True")
+    if not dry_run:
+        assert db is not None
 
     column_order = [c.db for c in job.columns]
     _, rows_iter = iter_rows(str(excel_file), job.excel, job.columns)
@@ -128,7 +130,7 @@ def load_job_file(
                         vals.append(v)
                     batch.append(tuple(vals))
                     if len(batch) >= batch_size:
-                        cur.executemany(insert_sql, batch)
+                        cur.executemany(insert_sql, adapt_param_rows(db, batch))
                         batch.clear()
             else:
                 bad += 1
@@ -145,7 +147,7 @@ def load_job_file(
                 badrows_dict_writer.writerow(record)
 
         if not dry_run and batch:
-            cur.executemany(insert_sql, batch)
+            cur.executemany(insert_sql, adapt_param_rows(db, batch))
             batch.clear()
         if not dry_run:
             db.commit()
