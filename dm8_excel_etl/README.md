@@ -189,12 +189,8 @@ cd dm8_excel_etl
 
 ```bash
 cd dm8_excel_etl
-python3 -m pip download -r requirements.txt -d wheels
-python3 -m pip download -r requirements-jdbc.txt -d wheels   # 如需 JDBC 兜底
-
-# 如发现 wheels 中缺少 aarch64 的二进制 wheel（例如 pyodbc/JPype1），在构建机补构建：
-# python3 -m pip wheel pyodbc==5.1.0 -w wheels --no-deps
-# python3 -m pip wheel JPype1==1.5.0 -w wheels --no-deps
+# 推荐：使用同版本 Python 直接构建 wheels（会自动下载 + 将源码包编译成 .whl）
+PYTHON=/opt/python3.10/bin/python3.10 INSTALL_JDBC=1 ./scripts/prepare_wheels.sh
 ```
 
 2. 生成离线包（会把 `wheels/`、SQL、配置、脚本一起打进去）：
@@ -259,7 +255,7 @@ python3.10 -V
 
 ```bash
 cd dm8_excel_etl_<version>_<date>
-INSTALL_JDBC=1 ./install_offline.sh   # 需要 JDBC 兜底就设 1；只用 ODBC 可不设
+PYTHON=/opt/python3.10/bin/python3.10 INSTALL_JDBC=1 ./install_offline.sh   # 需要 JDBC 兜底就设 1；只用 ODBC 可不设
 ```
 
 3. 配置连接信息（推荐用 `.env`，避免改动模板配置）：
