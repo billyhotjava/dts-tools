@@ -144,6 +144,15 @@ ENV/
 env.bak/
 venv.bak/
 
+# Project artifacts (dm8_excel_etl)
+dm8_excel_etl/.venv/
+dm8_excel_etl/wheels/
+dm8_excel_etl/logs/
+dm8_excel_etl/data/
+dm8_excel_etl/drivers/*.jar
+dm8_excel_etl/config/*.local.yaml
+dm8_excel_etl/config/*.local.yml
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -205,3 +214,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+#codex
+AGENTS.md

@@ -1,0 +1,163 @@
+# ERP 导出 Excel -> DM8 ODS 的配置示例（更贴近业务使用）
+#
+# 说明：
+# - `/etc/odbc.ini` 需要预先配置 DSN（如 dm8）
+# - `tables` 的 key 直接写 ODS 表名（建议与建表 SQL 保持一致）
+# - `file` 支持 glob（例如 `*.xlsx`），默认从 `data/inbox/` 匹配
+
+db:
+  # 推荐：优先走 DSN（/etc/odbc.ini），账号口令可放在 odbc.ini 或用环境变量注入
+  # 例如：export DM8_UID=SYSDBA; export DM8_PWD='***'
+  dsn: "${DM8_DSN:-DM8}"
+  uid: "${DM8_UID:-}"
+  pwd: "${DM8_PWD:-}"
+  autocommit: false
+  batch_size: 2000
+  # 连接模式：odbc / jdbc / auto（默认 auto：ODBC 失败则尝试 JDBC）
+  mode: "${DM8_MODE:-auto}"
+  # JDBC（可选：ODBC 失败时兜底；需要 requirements-jdbc.txt + 驱动 jar）
+  jdbc_driver: "${DM8_JDBC_DRIVER:-dm.jdbc.driver.DmDriver}"
+  jdbc_url: "${DM8_JDBC_URL:-jdbc:dm://127.0.0.1:5236}"
+  jdbc_jars:
+    # drivers/jdbc 下有多个版本，按你的 DM/JDK 选择其一
+    - "${DM8_JDBC_JAR:-drivers/jdbc/DmJdbcDriver8.jar}"
+
+# 可选：不写时默认使用 data/inbox、data/archive、data/badrows、logs
+paths:
+  inbox: "data/inbox"
+  archive: "data/archive"
+  badrows: "data/badrows"
+  logs: "logs"
+
+excel:
+  header_row: 1
+
+# 可选：CSV 输入（当 file 以 .csv 结尾时生效）
+# csv:
+#   encoding: "utf-8-sig"   # 常见：utf-8-sig / gbk
+#   delimiter: ","          # 也可能是 \t / |
+#   quotechar: "\""
+
+tables:
+  ods_proj_budget_exec_dtl:
+    file: "项目预算执行明细.xlsx"
+    sheet: "项目预算执行明细"
+    columns:
+      - {excel: "项目预算分类编码", db: "proj_budget_cat_code", type: "str"}
+      - {excel: "项目预算分类名称", db: "proj_budget_cat_name", type: "str"}
+      - {excel: "父项目编码",       db: "parent_proj_code",     type: "str"}
+      - {excel: "父项目名称",       db: "parent_proj_name",     type: "str"}
+      - {excel: "PK_Project",        db: "pk_project",           type: "str"}
+      - {excel: "项目编码",         db: "proj_code",            type: "str", required: true}
+      - {excel: "项目名称",         db: "proj_name",            type: "str"}
+      - {excel: "责任部门",         db: "resp_dept",            type: "str"}
+      - {excel: "预算金额（元）",   db: "budget_amt",           type: "decimal"}
+      - {excel: "调整金额（元）",   db: "adjust_amt",           type: "decimal"}
+      - {excel: "执行金额（元）",   db: "exec_amt",             type: "decimal"}
+      - {excel: "历史执行金额（元）", db: "hist_exec_amt",      type: "decimal"}
+
+  ods_proj_base_info:
+    file: "项目基本信息.xlsx"
+    sheet: "项目基本信息"
+    columns:
+      - {excel: "父项目编码", db: "parent_proj_code", type: "str"}
+      - {excel: "父项目名称", db: "parent_proj_name", type: "str"}
+      - {excel: "项目编码",   db: "proj_code",        type: "str", required: true}
+      - {excel: "项目名称",   db: "proj_name",        type: "str"}
+      - {excel: "创建人",     db: "creator",          type: "str"}
+
+  ods_po_exec:
+    file: "采购订单执行.xlsx"
+    sheet: "采购订单执行"
+    columns:
+      - {excel: "采购组织", db: "purchase_org", type: "str"}
+      - {excel: "订单编号", db: "order_no", type: "str"}
+      - {excel: "订单日期", db: "order_date", type: "date"}
+      - {excel: "合同号",   db: "contract_no", type: "str"}
+      - {excel: "订单币种", db: "order_currency", type: "str"}
+      - {excel: "供应商",   db: "supplier_name", type: "str"}
+      - {excel: "采购员",   db: "purchaser", type: "str"}
+      - {excel: "采购部门", db: "purchase_dept", type: "str"}
+      - {excel: "项目编码", db: "proj_code", type: "str"}
+      - {excel: "项目名称", db: "proj_name", type: "str"}
+      - {excel: "行号",     db: "line_no", type: "str"}
+      - {excel: "物料编码", db: "item_code", type: "str"}
+      - {excel: "物料名称", db: "item_name", type: "str"}
+      - {excel: "规格",     db: "spec", type: "str"}
+      - {excel: "型号",     db: "model", type: "str"}
+      - {excel: "主单位",   db: "uom", type: "str"}
+      - {excel: "主数量",   db: "qty", type: "decimal"}
+      - {excel: "主无税单价", db: "unit_price_nt", type: "decimal"}
+      - {excel: "主含税单价", db: "unit_price_tax", type: "decimal"}
+      - {excel: "无税金额", db: "amt_nt", type: "decimal"}
+      - {excel: "价税合计", db: "amt_tax", type: "decimal"}
+      - {excel: "税率",     db: "tax_rate", type: "decimal"}
+      - {excel: "税额",     db: "tax_amt", type: "decimal"}
+      - {excel: "赠品",     db: "is_gift", type: "str"}
+      - {excel: "到货主数量", db: "recv_qty", type: "decimal"}
+      - {excel: "退货主数量", db: "return_qty", type: "decimal"}
+      - {excel: "质检主数量", db: "qc_qty", type: "decimal"}
+      - {excel: "合格品主数量", db: "qualified_qty", type: "decimal"}
+      - {excel: "到货赠品主数量", db: "recv_gift_qty", type: "decimal"}
+      - {excel: "入库赠品主数量", db: "in_gift_qty", type: "decimal"}
+      - {excel: "入库主数量", db: "in_qty", type: "decimal"}
+      - {excel: "入库单价", db: "in_unit_price", type: "decimal"}
+      - {excel: "入库金额", db: "in_amt", type: "decimal"}
+      - {excel: "退库主数量", db: "return_in_qty", type: "decimal"}
+      - {excel: "发票主数量", db: "invoice_qty", type: "decimal"}
+      - {excel: "发票本币价税合计", db: "invoice_amt_tax_local", type: "decimal"}
+      - {excel: "发票本币付款余额", db: "invoice_pay_balance_local", type: "decimal"}
+
+  ods_stock_io_flow:
+    file: "出入库流水.xlsx"
+    sheet: "出入库流水"
+    columns:
+      - {excel: "库存组织",   db: "inv_org", type: "str"}
+      - {excel: "业务日期",   db: "biz_date", type: "date"}
+      - {excel: "单据类型",   db: "biz_type", type: "str"}
+      - {excel: "出入库类型", db: "io_type", type: "str"}
+      - {excel: "单据号",     db: "doc_no", type: "str"}
+      - {excel: "仓库",       db: "wh_name", type: "str"}
+      - {excel: "项目",       db: "proj", type: "str"}
+      - {excel: "物料编码",   db: "item_code", type: "str"}
+      - {excel: "物料名称",   db: "item_name", type: "str"}
+      - {excel: "物料版本",   db: "item_version", type: "str"}
+      - {excel: "规格",       db: "spec", type: "str"}
+      - {excel: "型号",       db: "model", type: "str"}
+      - {excel: "批次号",     db: "batch_no", type: "str"}
+      - {excel: "主单位",     db: "main_uom", type: "str"}
+      - {excel: "单位",       db: "uom", type: "str"}
+      - {excel: "换算率",     db: "conv_rate", type: "decimal"}
+      - {excel: "入库主数量", db: "in_main_qty", type: "decimal"}
+      - {excel: "入库数量",   db: "in_qty", type: "decimal"}
+      - {excel: "出库主数量", db: "out_main_qty", type: "decimal"}
+      - {excel: "出库数量",   db: "out_qty", type: "decimal"}
+
+  ods_stock_onhand:
+    file: "现存量.xlsx"
+    sheet: "现存量"
+    columns:
+      - {excel: "库存组织", db: "inv_org", type: "str"}
+      - {excel: "仓库",     db: "wh_name", type: "str"}
+      - {excel: "物料编码", db: "item_code", type: "str"}
+      - {excel: "物料名称", db: "item_name", type: "str"}
+      - {excel: "规格",     db: "spec", type: "str"}
+      - {excel: "型号",     db: "model", type: "str"}
+      - {excel: "主单位",   db: "uom", type: "str"}
+      - {excel: "项目",     db: "proj", type: "str"}
+      - {excel: "结存主数量", db: "onhand_qty", type: "decimal"}
+      - {excel: "预留主数量", db: "reserved_qty", type: "decimal"}
+      - {excel: "冻结主数量", db: "frozen_qty", type: "decimal"}
+      - {excel: "供应商物权结存主数量", db: "supplier_owner_onhand_qty", type: "decimal"}
+
+  ods_item_master:
+    file: "物料主数据.xlsx"
+    sheet: "物料主数据"
+    columns:
+      - {excel: "物料编码", db: "item_code", type: "str", required: true}
+      - {excel: "物料名称", db: "item_name", type: "str"}
+      - {excel: "物料分类", db: "item_class", type: "str"}
+      - {excel: "规格",     db: "spec", type: "str"}
+      - {excel: "型号",     db: "model", type: "str"}
+      - {excel: "主计量单位", db: "base_uom", type: "str"}
+      - {excel: "启用状态", db: "enable_status", type: "str"}
